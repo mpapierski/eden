@@ -9,10 +9,10 @@ from datetime import datetime
 
 SALT = 'f4a6?Sta+4'
 TIMEZONE = os.getenv('TIMEZONE')
-
+DATABASE_URL = os.getenv('DATABASE_URL')
 
 class Database(object):
-  def __init__(self, url='edenred.db'):
+  def __init__(self, url):
     """Setup database
     """
     self.db = sqlite3.connect(url)
@@ -98,9 +98,10 @@ def main():
   sms_to = os.getenv('SMS_TO')
   card_number = os.getenv('CARD_NUMBER')
   assert sms_to
-  db = Database('edenred.db')
+  db = Database(DATABASE_URL)
   current_value = db.get_balance()
   edenred_value = balance(int(card_number))
+  print '{0}\t{1}\t{2}'.format(now, current_value, edenred_value)
   if current_value != edenred_value:
     delta = edenred_value - current_value
     db.add_balance(edenred_value)
