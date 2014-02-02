@@ -4,9 +4,11 @@ import requests
 import hashlib
 import json
 import sqlite3
+import pytz
 from datetime import datetime
 
 SALT = 'f4a6?Sta+4'
+TIMEZONE = os.getenv('TIMEZONE')
 
 
 class Database(object):
@@ -91,7 +93,8 @@ def balance(cards, timestamp=None):
   return amount
 
 def main():
-  now = datetime.now()
+  tz = pytz.timezone(TIMEZONE)
+  now = tz.normalize(datetime.utcnow().replace(tzinfo=pytz.utc))
   sms_to = os.getenv('SMS_TO')
   card_number = os.getenv('CARD_NUMBER')
   assert sms_to
