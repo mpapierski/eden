@@ -91,7 +91,19 @@ def balance(cards, timestamp=None):
   return amount
 
 def main():
+  sms_to = os.getenv('SMS_TO')
+  card_number = os.getenv('CARD_NUMBER')
+  assert sms_to
   db = Database('edenred.db')
+  current_value = db.get_balance()
+  edenred_value = balance(int(card_number))
+  if current_value != edenred_value:
+    delta = current_value - edenred_value
+    db.add_balance(edenred_value)
+    send_sms(sms_to, 'Previous {0}. Current {1}. Delta {2}.'.format(
+      current_value,
+      edenred_value,
+      delta))
 
 if __name__ == '__main__':
   main()
