@@ -14,4 +14,4 @@ def test_empty_balance():
   eq_(Database(':memory:').get_balance(), 0)
 
 def test_empty_history():  
-  eq_(list(Database().balance()), [])
+  eq_(list(Database(':memory:').balance()), [])
