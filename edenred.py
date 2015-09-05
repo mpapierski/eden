@@ -5,11 +5,14 @@ import hashlib
 import json
 import sqlite3
 import pytz
+from pushover import init, Client
 from datetime import datetime
 
 SALT = 'f4a6?Sta+4'
 TIMEZONE = os.getenv('TIMEZONE')
 DATABASE_URL = os.getenv('DATABASE_URL')
+PUSHOVER_TOKEN = os.environ['PUSHOVER_TOKEN']
+PUSHOVER_KEY = os.environ['PUSHOVER_KEY']
 
 class Database(object):
   def __init__(self, url):
@@ -38,27 +41,6 @@ class Database(object):
     for (value, ) in self.db.execute('''SELECT `value` FROM `balance` ORDER BY `id` ASC'''):
       yield value
 
-def send_sms(to, message):
-  """Send SMS message to number `number` and message `message`.
-  """
-  username = os.getenv('SMSAPI_USERNAME')
-  password = os.getenv('SMSAPI_PASSWORD')
-  assert username
-  assert password
-  data = {
-    'username': username,
-    'password': password,
-    'to': to,
-    'message': message,
-    'from': 'ECO',
-  }
-  r = requests.post('https://ssl.smsapi.pl/sms.do', data=data)
-  response = r.content
-  if response.startswith('ERROR:'):
-    _, error_code = response.split(':')
-    raise RuntimeError(error_code)
-  assert response.startswith('OK:')
-  print response
 
 def balance(cards, timestamp=None):
   if timestamp is None:
@@ -93,11 +75,11 @@ def balance(cards, timestamp=None):
   return amount
 
 def main():
+  init(PUSHOVER_TOKEN)
+  pushover = Client(PUSHOVER_KEY)
   tz = pytz.timezone(TIMEZONE)
   now = tz.normalize(datetime.utcnow().replace(tzinfo=pytz.utc))
-  sms_to = os.getenv('SMS_TO')
   card_number = os.getenv('CARD_NUMBER')
-  assert sms_to
   db = Database(DATABASE_URL)
   current_value = db.get_balance()
   edenred_value = balance(int(card_number))
@@ -105,11 +87,12 @@ def main():
   if current_value != edenred_value:
     delta = edenred_value - current_value
     db.add_balance(edenred_value)
-    send_sms(sms_to, 'Edenred {3}. Previous {0}. Current {1}. Delta {2}.'.format(
+    message = 'Edenred {3}. Previous {0}. Current {1}. Delta {2}.'.format(
       current_value,
       edenred_value,
       delta,
-      now.strftime('%Y-%m-%d %H:%M:%S')))
+      now.strftime('%Y-%m-%d %H:%M:%S'))
+    pushover.send_message(message, title='Edenred')
 
 if __name__ == '__main__':
   main()
